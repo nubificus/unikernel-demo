@@ -1,0 +1,57 @@
+name: OCI image push
+
+on:
+  push:
+      branches:
+        - main
+  pull_request:
+      branches:
+        - main
+  workflow_dispatch:
+
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read  # This is required for actions/checkout
+
+
+jobs:
+  prepare:
+    runs-on: [self-hosted ]
+    steps:
+      - name: Prepare & Setup jobs
+        run: echo "Will spawn jobs to build, sign & push"
+
+
+  build:
+    needs: [prepare]
+    strategy:
+      matrix:
+        archconfig: [ x86_64, aarch64 ]
+        unikernel: [ httpreply ]
+        hypervisor: [ qemu, fc]
+      fail-fast: false
+    uses: ./.github/workflows/build.yml
+    with:
+      matrix: ${{ matrix.archconfig }}
+      unikernel: ${{ matrix.unikernel }}
+      hypervisor: ${{ matrix.hypervisor }}
+    secrets:
+      aws_access_key: ${{ secrets.AWS_ACCESS_KEY}}
+      aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY}}
+      harbor_user: ${{ secrets.HARBOR_USER }}
+      harbor_secret: ${{ secrets.HARBOR_SECRET }}
+
+
+  manifest:
+    needs: [build]
+    uses: ./.github/workflows/manifest.yml
+    strategy:
+      matrix:
+        unikernel: [ httpreply ]
+        hypervisor: [ qemu, fc]
+    with:
+      unikernel: ${{ matrix.unikernel }}
+      hypervisor: ${{ matrix.hypervisor }}
+    secrets:
+      harbor_user: ${{ secrets.HARBOR_USER }}
+      harbor_secret: ${{ secrets.HARBOR_SECRET }}

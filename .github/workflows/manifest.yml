@@ -1,0 +1,63 @@
+name: Manifest
+
+on:
+  workflow_call:
+    inputs:
+      unikernel:
+        required: true
+        type: string
+      hypervisor:
+        required: true
+        type: string
+    secrets:
+      harbor_secret:
+        required: true
+      harbor_user:
+        required: true
+
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read  # This is required for actions/checkout
+
+
+jobs:
+  manifest:
+    runs-on: [self-hosted ]
+    steps:
+
+    - name: Install Cosign
+      uses: sigstore/cosign-installer@v3.1.1
+
+    - name: Login to Harbor
+      uses: docker/login-action@v2
+      with:
+        registry: harbor.nbfc.io/nubificus
+        username: ${{ secrets.harbor_user }}
+        password: ${{ secrets.harbor_secret }}
+
+    - name: Check install!
+      run: cosign version
+
+    - name: Create manifest
+      run: |
+        TAGS=harbor.nbfc.io/nubificus/${{ inputs.unikernel }}-${{ inputs.hypervisor }}:latest
+        docker manifest rm $TAGS || true
+        docker manifest create $TAGS \
+           --amend harbor.nbfc.io/nubificus/${{ inputs.unikernel }}-${{ inputs.hypervisor }}:x86_64 \
+           --amend harbor.nbfc.io/nubificus/${{ inputs.unikernel }}-${{ inputs.hypervisor }}:aarch64
+        HASH=$(docker manifest push $TAGS)
+        echo "hash=$HASH" >> $GITHUB_ENV
+        echo "tags=$TAGS" >> $GITHUB_ENV
+
+
+    - name: Sign the published Docker image
+      env:
+        COSIGN_EXPERIMENTAL: "true"
+        DIGEST: ${{ env.hash }}
+        TAGS: ${{ env.tags }}
+      run: |
+        cosign sign --yes harbor.nbfc.io/nubificus/${{ inputs.unikernel }}-${{ inputs.hypervisor }}@${{ env.DIGEST }} \
+        -a "repo=${{github.repository}}" \
+        -a "workflow=${{github.workflow}}" \
+        -a "ref=${{github.sha}}" \
+        -a "author=Nubificus LTD"
