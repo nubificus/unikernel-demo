@@ -96,14 +96,15 @@ jobs:
         mv /tmp/bima /usr/local/bin/bima
 
     - name: Setup params
+      shell: bash
       run: |
-        if [[ "${{ inputs.hypervisor }}" == "fc" ]]
+        if [[ "${{inputs.hypervisor}}" != "fc" ]]
         then
-          echo "HYPERVISOR=firecracker" >> $GITHUB_ENV
-          echo "cmdlineparam=\"mydummyapp mydummyoption\"" >> $GITHUB_ENV
-        else
           echo "HYPERVISOR=${{ inputs.hypervisor }}" >> $GITHUB_ENV
           echo "cmdlineparam=" >> $GITHUB_ENV
+        else
+          echo "HYPERVISOR=firecracker" >> $GITHUB_ENV
+          echo "cmdlineparam=\"mydummyapp mydummyoption\"" >> $GITHUB_ENV
         fi
 
         echo "hypervisor: ${{ env.HYPERVISOR }}"
