@@ -94,6 +94,20 @@ jobs:
         ls -la /tmp/
         chmod +x /tmp/bima 
         mv /tmp/bima /usr/local/bin/bima
+    - name: Setup params
+      run: |
+        echo "HYPERVISOR=${{ inputs.hypervisor }}" >> $GITHUB_ENV
+        echo "cmdlineparam=" >> $GITHUB_ENV
+        if [[ "${{ inputs.hypervisor }}" == "fc" ]]
+        then
+          echo "HYPERVISOR=firecracker" >> $GITHUB_ENV
+          echo "cmdlineparam=\"mydummyapp mydummyoption\"" >> $GITHUB_ENV
+        fi
+
+        echo "hypervisor: ${{ env.HYPERVISOR }}"
+        echo "cmdline: ${{ env.cmdlineparam }}"
+
+
 
     - name: Start containerd service
       run: systemctl enable containerd.service --now
@@ -103,20 +117,16 @@ jobs:
         cd /tmp && mkdir -p job && cd job
         curl -L -o ${{ inputs.unikernel }}_${{ inputs.hypervisor }}-${{ inputs.matrix }} https://s3.nubificus.co.uk/bima/${{ inputs.matrix }}/${{ inputs.unikernel }}_${{ inputs.hypervisor }}-${{ inputs.matrix }}/${{ inputs.unikernel }}_${{ inputs.hypervisor }}-${{ inputs.matrix }}
 
-        echo "HYPERVISOR=${{ inputs.hypervisor }}" >> $GITHUB_ENV
-        if [[ "${{ inputs.hypervisor }}" == "fc" ]]
-        then
-          echo "HYPERVISOR=firecracker" >> $GITHUB_ENV
-          echo "cmdlineparam=mydummyapp mydummyoption" >> $GITHUB_ENV
-        fi
+        echo "hypervisor: ${{ env.HYPERVISOR }}"
+        echo "cmdline: ${{ env.cmdlineparam }}"
 
         tee Containerfile > /dev/null <<EOT
         FROM scratch
         COPY ${{ inputs.unikernel }}_${{ inputs.hypervisor}}-${{ inputs.matrix }} /unikernel/httpreply-unikraft
         LABEL "com.urunc.unikernel.binary"="/unikernel/httpreply-unikraft"
-        LABEL "com.urunc.unikernel.cmdline"="${{ env.cmdlineparam }}"
+        LABEL "com.urunc.unikernel.cmdline"=${{ env.cmdlineparam }}
         LABEL "com.urunc.unikernel.unikernelType"="unikraft"
-        LABEL "com.urunc.unikernel.hypervisor"="${{ env.HYPERVISOR }}"
+        LABEL "com.urunc.unikernel.hypervisor"=${{ env.HYPERVISOR }}
         EOT
 
     - name: Build image
