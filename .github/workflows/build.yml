@@ -50,8 +50,8 @@ jobs:
     - name: Build unikraft HTTPreply
       run: |
         sudo apt  update && sudo apt install -y bison flex unzip
-        git clone https://github.com/unikraft/unikraft .unikraft/unikraft
-        git clone https://github.com/unikraft/lib-lwip .unikraft/libs/lwip
+        git clone https://github.com/unikraft/unikraft .unikraft/unikraft -b RELEASE-0.15.0
+        git clone https://github.com/unikraft/lib-lwip .unikraft/libs/lwip -b RELEASE-0.15.0
         #LOCALARCH=$(uname -m | sed s/aarch64/arm64/)
         LOCALARCH=$(uname -m)
         UK_DEFCONFIG=$(pwd)/.config.${{ inputs.unikernel}}_${{ inputs.hypervisor }}-$LOCALARCH make defconfig
