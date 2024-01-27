@@ -55,6 +55,12 @@ jobs:
         #LOCALARCH=$(uname -m | sed s/aarch64/arm64/)
         LOCALARCH=$(uname -m)
         UK_DEFCONFIG=$(pwd)/.config.${{ inputs.unikernel}}_${{ inputs.hypervisor }}-$LOCALARCH make defconfig
+        if [[ "${{inputs.matrix }}" == "aarch64" ]]
+        then
+          cd .unikraft/unikraft
+          patch -p1 < ../../patch.txt
+          cd ../../
+        fi
         make -j $(nproc)
         mkdir artifact
         LOCALARCH=$(uname -m | sed s/aarch64/arm64/)
