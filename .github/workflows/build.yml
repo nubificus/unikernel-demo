@@ -92,7 +92,7 @@ jobs:
     steps:
     - name: Download bima
       run: |
-        curl -L -o /tmp/bima https://s3.nubificus.co.uk/nbfc-assets/github/bima/dist/dba2fe43b3606687bf0ee08a4a57f41e3d2cf052/${{ inputs.matrix }}/bima_${{ inputs.matrix }}
+        curl -L -o /tmp/bima https://s3.nubificus.co.uk/nbfc-assets/github/bima/dist/main/${{ inputs.matrix }}/bima_${{ inputs.matrix }}
     
     - name: Make bima executable
       run: |
