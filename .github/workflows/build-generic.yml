@@ -1,0 +1,148 @@
+name: Buildgeneric
+
+on:
+  workflow_call:
+    inputs:
+      matrix:
+        required: true
+        type: string
+      app:
+        required: true
+        type: string
+    secrets:
+      aws_access_key:
+        required: true
+      aws_secret_access_key:
+        required: true
+      harbor_secret:
+        required: true
+      harbor_user:
+        required: true
+
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read  # This is required for actions/checkout
+
+env:
+  # Use docker.io for Docker Hub if empty
+  REGISTRY: harbor.nbfc.io/nubificus
+  # github.repository as <account>/<repo>
+  IMAGE_NAME: ${{ inputs.app }}
+  #${{ github.repository }}
+  ARCH: ${{ inputs.matrix }}
+
+
+jobs:
+  buildapp:
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: [ self-hosted, "${{ inputs.matrix }}", go]
+    outputs:
+            #hash: ${{ steps.vars-set.outputs.hash }}
+            #tags: ${{ steps.vars-set.outputs.tags }}
+      hash: ${{ steps.build-and-push.outputs.digest}}
+      tags: ${{ steps.meta.outputs.tags }}
+
+    
+    steps:
+    - name: Cleanup previous jobs
+      run: |
+        echo "Cleaning up previous runs"
+        sudo rm -rf ${{ github.workspace }}/*
+        sudo rm -rf ${{ github.workspace }}/.??*
+
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        repository: nubificus/httpreply-go
+        ref: main
+
+     # Login against a Docker registry except on PR
+     # https://github.com/docker/login-action
+    - name: Log into registry ${{ env.REGISTRY }}
+      #if: github.event_name != 'pull_request'
+      uses: docker/login-action@28218f9b04b4f3f62068d7b6ce6ca5b26e35336c
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ secrets.harbor_user }}
+        password: ${{ secrets.harbor_secret }}
+
+    # Extract metadata (tags, labels) for Docker
+    # https://github.com/docker/metadata-action
+    - name: Extract Docker metadata
+      id: meta
+      uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+    # Build and push Docker image with Buildx (don't push on PR)
+    # https://github.com/docker/build-push-action
+    - name: Build and push Docker image
+      id: build-and-push
+      #uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+      uses: docker/build-push-action@master
+      with:
+        context: .
+        file: Dockerfile
+        no-cache: true
+        #push: ${{ github.event_name != 'pull_request' }}
+        push: true #${{ github.event_name != 'pull_request' }}
+        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.ARCH }}
+        labels: ${{ steps.meta.outputs.labels }}
+        build-args: |
+              ARCHTAG=${{ env.ARCH }}
+
+#    - name: Set vars
+#      id: vars-set
+#      #continue-on-error: true
+#      run: |
+#        TAGS=harbor.nbfc.io/nubificus/${{ inputs.app }}:${{ inputs.matrix }}
+#        #HASH=$(bima build -t $TAGS -f /tmp/job/Containerfile /tmp/job)
+#        HASH=$(echo ${{ steps.build-and-push.outputs.digest }})
+#        #TAGS: ${{ steps.docker_meta.outputs.tags }}
+#        echo $HASH
+#        echo "======================"
+#        echo "hash=$HASH" >> $GITHUB_OUTPUT
+#        echo "tags=$TAGS" >> $GITHUB_OUTPUT
+
+  sign:
+    runs-on: [self-hosted, "${{ inputs.matrix }}" ]
+    needs: [buildapp]
+    steps:
+    
+    - name: Find SHA
+      run: |
+        if [[ "${{github.event.pull_request.head.sha}}" != "" ]]
+        then
+          echo "ARTIFACT_SHA=$(echo ${{github.event.pull_request.head.ref}})" >> $GITHUB_ENV
+        else
+          echo "ARTIFACT_SHA=$(echo ${GITHUB_REF##*/})" >> $GITHUB_ENV
+        fi
+        echo "output: ${{ needs.buildapp.outputs.hash }}"
+        echo "output: ${{ needs.buildapp.outputs.tags }}"
+
+    - name: Install Cosign
+      uses: sigstore/cosign-installer@v3.1.1
+
+    - name: Login to Harbor
+      uses: docker/login-action@v2
+      with:
+        registry: harbor.nbfc.io/nubificus
+        username: ${{ secrets.harbor_user }}
+        password: ${{ secrets.harbor_secret }}
+
+    - name: Check install!
+      run: cosign version
+
+    - name: Sign the published Docker image
+      env:
+        COSIGN_EXPERIMENTAL: "true"
+        DIGEST: ${{ needs.buildapp.outputs.hash}}
+        TAGS: ${{ needs.buildapp.outputs.tags }}
+      run: |
+        cosign sign --yes harbor.nbfc.io/nubificus/${{ inputs.app }}@${{ env.DIGEST }} \
+        -a "repo=${{github.repository}}" \
+        -a "workflow=${{github.workflow}}" \
+        -a "ref=${{github.sha}}" \
+        -a "author=Nubificus LTD"
