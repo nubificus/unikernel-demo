@@ -146,7 +146,7 @@ jobs:
         HASH=$(bima build -t $TAGS -f /tmp/job/Containerfile /tmp/job)
         echo $HASH
         echo "======================"
-        ctr image push $TAGS -u 'robot$unikraft:0jPGUiOCyvlJyBpTu51zI1ET17U9oSMd'
+        ctr image push $TAGS -u 'robot$unikraft:vpasVSXZAUZiRhAvi4sYdBn65UCHi1fq'
         echo "hash=$HASH" >> $GITHUB_OUTPUT
         echo "tags=$TAGS" >> $GITHUB_OUTPUT
 
