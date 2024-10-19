@@ -45,7 +45,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: nubificus/app-httpreply
-        ref: nbfc-knative-upd
+        ref: nbfc-knative-html
 
     - name: Build unikraft HTTPreply
       run: |
