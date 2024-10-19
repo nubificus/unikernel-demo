@@ -45,7 +45,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: nubificus/app-httpreply
-        ref: nbfc-knative-upd
+        ref: nbfc-knative-html
 
     - name: Build unikraft HTTPreply
       run: |
@@ -146,7 +146,7 @@ jobs:
         HASH=$(bima build -t $TAGS -f /tmp/job/Containerfile /tmp/job)
         echo $HASH
         echo "======================"
-        ctr image push $TAGS -u 'robot$unikraft:0jPGUiOCyvlJyBpTu51zI1ET17U9oSMd'
+        ctr image push $TAGS -u 'robot$unikraft:vpasVSXZAUZiRhAvi4sYdBn65UCHi1fq'
         echo "hash=$HASH" >> $GITHUB_OUTPUT
         echo "tags=$TAGS" >> $GITHUB_OUTPUT
 
@@ -167,7 +167,7 @@ jobs:
         echo "output: ${{ needs.buildimage.outputs.tags }}"
 
     - name: Install Cosign
-      uses: sigstore/cosign-installer@v3.1.1
+      uses: sigstore/cosign-installer@v3.4.0
 
     - name: Login to Harbor
       uses: docker/login-action@v2

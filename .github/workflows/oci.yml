@@ -41,6 +41,36 @@ jobs:
       harbor_user: ${{ secrets.HARBOR_USER }}
       harbor_secret: ${{ secrets.HARBOR_SECRET }}
 
+  buildgeneric:
+    needs: [prepare]
+    strategy:
+      matrix:
+        archconfig: [ x86_64, aarch64 ]
+        app: [ httpreply-go ]
+      fail-fast: false
+    uses: ./.github/workflows/build-generic.yml
+    with:
+      matrix: ${{ matrix.archconfig }}
+      app: ${{ matrix.app }}
+    secrets:
+      aws_access_key: ${{ secrets.AWS_ACCESS_KEY}}
+      aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY}}
+      harbor_user: ${{ secrets.HARBOR_USER }}
+      harbor_secret: ${{ secrets.HARBOR_SECRET }}
+
+  manifestgeneric:
+    needs: [buildgeneric]
+    uses: ./.github/workflows/manifest.yml
+    strategy:
+      matrix:
+        unikernel: [ httpreply ]
+        hypervisor: [ go ]
+    with:
+      unikernel: ${{ matrix.unikernel }}
+      hypervisor: ${{ matrix.hypervisor }}
+    secrets:
+      harbor_user: ${{ secrets.HARBOR_USER }}
+      harbor_secret: ${{ secrets.HARBOR_SECRET }}
 
   manifest:
     needs: [build]
