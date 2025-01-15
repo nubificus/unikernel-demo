@@ -136,6 +136,7 @@ jobs:
         LABEL "com.urunc.unikernel.cmdline"=${{ env.cmdlineparam }}
         LABEL "com.urunc.unikernel.unikernelType"="unikraft"
         LABEL "com.urunc.unikernel.hypervisor"=${{ env.HYPERVISOR }}
+        LABEL "com.urunc.unikernel.unikernelVersion"="0.15.0"
         EOT
 
     - name: Build image
