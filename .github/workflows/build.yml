@@ -45,7 +45,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: nubificus/app-httpreply
-        ref: nbfc-knative-html
+        ref: nbfc-knative-html-athk8s
 
     - name: Build unikraft HTTPreply
       run: |
@@ -147,7 +147,7 @@ jobs:
         HASH=$(bima build -t $TAGS -f /tmp/job/Containerfile /tmp/job)
         echo $HASH
         echo "======================"
-        ctr image push $TAGS -u 'robot$unikraft:vpasVSXZAUZiRhAvi4sYdBn65UCHi1fq'
+        ctr image push $TAGS -u 'robot$github-update:ON8YIY9zJpXh4w5p4eP7PBzCvWFCs1Wp'
         echo "hash=$HASH" >> $GITHUB_OUTPUT
         echo "tags=$TAGS" >> $GITHUB_OUTPUT
 
